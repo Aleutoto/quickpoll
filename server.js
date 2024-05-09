@@ -7,12 +7,12 @@ const port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-const polls = {};
+const pollStore = {};
 
-const generateID = () => `poll_${Math.random().toString(36).substr(2, 9)}`;
+const generateUniquePollID = () => `poll_${Math.random().toString(36).substr(2, 9)}`;
 
 app.post('/polls', (req, res) => {
-  const id = generateID();
+  const pollID = generateUniquePollID();
   const { question, options } = req.body;
 
   if (!question || !options || options.length < 2) {
@@ -20,44 +20,44 @@ app.post('/polls', (req, res) => {
   }
 
   const newPoll = {
-    id,
+    id: pollID,
     question,
-    options: options.map(option => ({ option, votes: 0 })),
+    options: options.map(option => ({ text: option, votes: 0 })),
   };
 
-  polls[id] = newPoll;
+  pollStore[pollID] = newPoll;
 
   res.status(201).send(newPoll);
 });
 
 app.post('/polls/:id/vote', (req, res) => {
-  const { id } = req.params;
-  const { option } = req.body;
+  const { id: pollID } = req.params;
+  const { option: chosenOption } = req.body;
 
-  const poll = polls[id];
-  if (!poll) {
+  const currentPoll = pollStore[pollID];
+  if (!currentPoll) {
     return res.status(404).send({ error: 'Poll not found.' });
   }
 
-  const optionIndex = poll.options.findIndex(op => op.option === option);
-  if (optionIndex === -1) {
+  const chosenOptionIndex = currentPoll.options.findIndex(op => op.text === chosenOption);
+  if (chosenOptionIndex === -1) {
     return res.status(404).send({ error: 'Option not found.' });
   }
 
-  poll.options[optionIndex].votes += 1;
+  currentPoll.options[chosenOptionIndex].votes += 1;
 
   res.status(200).send({ message: 'Vote successfully counted.' });
 });
 
 app.get('/polls/:id', (req, res) => {
-  const { id } = req.params;
+  const { id: pollID } = req.params;
 
-  const poll = polls[id];
-  if (!poll) {
+  const requestedPoll = pollStore[pollID];
+  if (!requestedPoll) {
     return res.status(404).send({ error: 'Poll not found.' });
   }
 
-  res.status(200).send(poll);
+  res.status(200).send(requestedPoll);
 });
 
 app.listen(port, () => {
