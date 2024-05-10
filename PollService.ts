@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
 
@@ -21,13 +21,32 @@ interface PollResult {
   results: { [option: string]: number };
 }
 
+const handleError = (error: AxiosError): string => {
+  if (error.response) {
+    console.error('Response data:', error.response.data);
+    console.error('Response status:', error.response.status);
+    console.error('Response headers:', error.response.headers);
+    return `Server responded with status code ${error.response.status}`;
+  } else if (error.request) {
+    console.error('Request made but no response:', error.request);
+    return 'Request made but no response received';
+  } else {
+    console.error('Error message:', error.message);
+    return `Request setup failed: ${error.message}`;
+  }
+};
+
 export const createPoll = async (poll: Poll): Promise<Poll | string> => {
   try {
     const response = await api.post('/polls', poll);
     return response.data;
   } catch (error) {
-    console.error('Error creating poll:', error);
-    return 'Error creating poll';
+    if (error instanceof AxiosError) {
+      return handleError(error);
+    } else {
+      console.error('Error creating poll:', error);
+      return 'Unknown error occurred while creating poll';
+    }
   }
 };
 
@@ -36,8 +55,12 @@ export const castVote = async (vote: Vote): Promise<Vote | string> => {
     const response = await api.post('/vote', vote);
     return response.data;
   } catch (error) {
-    console.error('Error casting vote:', error);
-    return 'Error casting vote';
+    if (error instanceof AxiosError) {
+      return handleError(error);
+    } else {
+      console.error('Error casting vote:', error);
+      return 'Unknown error occurred while casting vote';
+    }
   }
 };
 
@@ -46,7 +69,11 @@ export const fetchPollResults = async (pollId: string): Promise<PollResult | str
     const response = await api.get(`/polls/${pollId}/results`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching poll results:', error);
-    return 'Error fetching poll results';
+    if (error instanceof AxiosError) {
+      return handleError(error);
+    } else {
+      console.error('Error fetching poll results:', error);
+      return 'Unknown error occurred while fetching poll results';
+    }
   }
 };
