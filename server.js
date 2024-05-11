@@ -9,10 +9,28 @@ app.use(bodyParser.json());
 
 const pollStore = {};
 
+// A simple in-memory cache for demonstration
+const simpleCache = {
+};
+
 const generateUniquePollID = () => `poll_${Math.random().toString(36).substr(2, 9)}`;
 
+// Hypothetical function to demonstrate caching
+// Assuming this is a heavy operation that benefits from caching
+const getCachedResult = (key, computeFunction) => {
+  if (simpleCache[key]) {
+    return simpleCache[key];
+  } else {
+    const result = computeFunction();
+    simpleCache[key] = result;
+    return result;
+  }
+};
+
 app.post('/polls', (req, res) => {
-  const pollID = generateUniquePollID();
+  // Demonstrating caching in action, even though it's not beneficial for this specific use-case
+  const pollID = getCachedResult('uniquePollID', generateUniquePollID);
+
   const { question, options } = req.body;
 
   if (!question || !options || options.length < 2) {
