@@ -35,6 +35,9 @@ const QuickPoll: React.FC = () => {
     };
     setPolls([...polls, newPoll]);
     setCurrentPoll(newPoll);
+    // Clear inputs after creating a poll.
+    setNewPollQuestion('');
+    setNewPollOptions(['', '']);
   };
 
   const handleVote = (pollId: number, optionId: number) => {
@@ -53,6 +56,14 @@ const QuickPoll: React.FC = () => {
     setPolls(updatedPolls);
   };
 
+  const handleAddOption = () => {
+    setNewPollOptions([...newPollOptions, '']);
+  }
+
+  const handleDeleteOption = (index: number) => {
+    setNewPollOptions(newPollOptions.filter((_, idx) => idx !== index));
+  }
+
   return (
     <div>
       <section>
@@ -65,20 +76,23 @@ const QuickPoll: React.FC = () => {
         />
         <div>
           {newPollOptions.map((option, index) => (
-            <input
-              key={index}
-              type='text'
-              placeholder={`Option ${index + 1}`}
-              value={option}
-              onChange={(e) => {
-                const newOptions = [...newPollOptions];
-                newOptions[index] = e.target.value;
-                setNewPollOptions(newOptions);
-              }}
-            />
+            <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <input
+                type='text'
+                placeholder={`Option ${index + 1}`}
+                value={option}
+                onChange={(e) => {
+                  const newOptions = [...newPollOptions];
+                  newOptions[index] = e.target.value;
+                  setNewPollOptions(newOptions);
+                }}
+                style={{ marginRight: '5px' }}
+              />
+              <button onClick={() => handleDeleteOption(index)}>Delete</button>
+            </div>
           ))}
         </div>
-        <button onClick={() => setNewPollOptions([...newPollOptions, ''])}>
+        <button onClick={handleAddOption}>
           Add Option
         </button>
         <button onClick={handleCreatePoll}>Create Poll</button>
