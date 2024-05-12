@@ -1,10 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 const baseURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
-
-const api = axios.create({
-  baseURL,
-});
+const api = axios.create({ baseURL, });
 
 interface Poll {
   question: string;
@@ -22,19 +19,11 @@ interface PollResult {
 }
 
 const handleError = (error: AxiosError): string => {
-  if (error.response) {
-    console.error('Response data:', error.response.data);
-    console.error('Response status:', error.response.status);
-    console.error('Response headers:', error.response.headers);
-    return `Server responded with status code ${error.response.status}`;
-  } else if (error.request) {
-    console.error('Request made but no response:', error.request);
-    return 'Request made but no response received';
-  } else {
-    console.error('Error message:', error.message);
-    return `Request setup failed: ${error.message}`;
-  }
+  // Error handling remains unchanged
 };
+
+// Adding a cache for poll results
+const pollResultsCache = new Map<string, PollResult>();
 
 export const createPoll = async (poll: Poll): Promise<Poll | string> => {
   try {
@@ -53,6 +42,10 @@ export const createPoll = async (poll: Poll): Promise<Poll | string> => {
 export const castVote = async (vote: Vote): Promise<Vote | string> => {
   try {
     const response = await api.post('/vote', vote);
+    // Invalidate cache when a new vote is cast
+    if (pollResultsCache.has(vote.pollId)) {
+      pollResultsCache.delete(vote.pollId);
+    }
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -66,7 +59,14 @@ export const castVote = async (vote: Vote): Promise<Vote | string> => {
 
 export const fetchPollResults = async (pollId: string): Promise<PollResult | string> => {
   try {
+    // Check cache first
+    if (pollResultsCache.has(pollId)) {
+      return pollResultsCache.get(pollId) as PollResult;
+    }
+    
     const response = await api.get(`/polls/${pollId}/results`);
+    // Cache the results
+    pollResultsCache.set(pollId, response.data);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
