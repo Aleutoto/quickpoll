@@ -5,20 +5,19 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 
 const app = express();
-
 app.use(bodyParser.json());
 
-const usersDb = {};
+const userDatabase = {};
 
-const authenticateToken = (req, res, next) => {
+const verifyAuthenticationToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const authToken = authHeader && authHeader.split(' ')[1];
     
-    if (token == null) return res.sendStatus(401);
+    if (authToken == null) return res.sendStatus(401);
     
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    jwt.verify(authToken, process.env.ACCESS_TOKEN_SECRET, (err, decodedUser) => {
         if (err) return res.sendStatus(403);
-        req.user = user;
+        req.user = decodedUser;
         next();
     });
 };
@@ -28,13 +27,13 @@ app.post('/register', async (req, res) => {
         const { username, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        if (usersDb[username]) {
+        if (userDatabase[username]) {
             return res.status(400).send('User already exists');
         }
         
-        usersDb[username] = { password: hashedPassword };
+        userDatabase[username] = { password: hashedPassword };
         
-        res.status(201).send('User registered');
+        res.status(201).send('User registered successfully');
     } catch {
         res.status(500).send();
     }
@@ -42,29 +41,29 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = usersDb[username];
+    const userInDb = userDatabase[username];
     
-    if (user == null) {
+    if (userInDb == null) {
         return res.status(400).send('Cannot find user');
     }
     
     try {
-        if (await bcrypt.compare(password, user.password)) {
+        if (await bcrypt.compare(password, userInDb.password)) {
             const accessToken = jwt.sign({ username: username }, process.env.ACCESS_TOKEN_SECRET);
             res.json({ accessToken: accessToken });
         } else {
-            res.send('Not Allowed');
+            res.send('Login failed');
         }
     } catch {
         res.status(500).send();
     }
 });
 
-app.get('/protected', authenticateToken, (req, res) => {
+app.get('/protected', verifyAuthenticationToken, (req, res) => {
     res.send('Welcome to the protected route, ' + req.user.username);
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
